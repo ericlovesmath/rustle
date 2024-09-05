@@ -4,44 +4,19 @@ use std::fmt;
 pub struct Board {
     pub state: [[BitBoard; 6]; 2],
     pub turn: Sides, // TODO: turn to 1 bit bool?
-                     // castle_rights: u8,
+    pub castle_rights: u8,
                      // en_passant: Option<u8>,
                      // halfmoves: usize,
 }
 
 impl Board {
     pub fn new() -> Self {
-        let state = [
-            [
-                BitBoard::from(vec![A2, B2, C2, D2, E2, F2, G2, H2]),
-                // BitBoard::from(vec![A1, H1]),
-                BitBoard::from(vec![A1, H1, C4]),
-                BitBoard::from(vec![B1, G1]),
-                // BitBoard::from(vec![C1, F1]),
-                BitBoard::from(vec![C1, F1, F4]),
-                // BitBoard::from(vec![D1]),
-                BitBoard::from(vec![D1, E4]),
-                BitBoard::from(vec![E1]),
-            ],
-            [
-                BitBoard::from(vec![A7, B7, C7, D7, E7, F7, G7, H7]),
-                BitBoard::from(vec![A8, H8]),
-                BitBoard::from(vec![B8, G8]),
-                // BitBoard::from(vec![C8, F8]),
-                BitBoard::from(vec![C8, F8, D3]),
-                BitBoard::from(vec![D8]),
-                BitBoard::from(vec![E8]),
-            ],
-        ];
+        Self::from("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1".to_string())
+    }
 
-        // use CastleRights::*;
-        // let castle_rights = WhiteQueen as u8 | WhiteKing as u8 | BlackQueen as u8 | BlackKing as u8;
-
-        Board {
-            state,
-            turn: Sides::White,
-            // castle_rights,
-        }
+    pub fn set(&mut self, side: Sides, piece: Piece, square: u8) {
+        let mask = 1u64 << square as u64;
+        self.state[side as usize][piece as usize].0 |= mask;
     }
 }
 
@@ -82,7 +57,7 @@ impl fmt::Display for Board {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub struct BitBoard(pub u64);
 
 impl BitBoard {

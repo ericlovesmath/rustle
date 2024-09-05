@@ -41,7 +41,7 @@ struct Masks {
 
 impl Board {
     pub fn apply(&self, mov: Move) -> Self {
-        let mut state = self.state.clone();
+        let mut state = self.state;
         let board = &mut state[self.turn as usize][mov.piece as usize];
         board.0 ^= 1u64 << mov.from;
         board.0 ^= 1u64 << mov.to;
@@ -58,6 +58,7 @@ impl Board {
         Self {
             state,
             turn: self.turn.switch(),
+            castle_rights: self.castle_rights,
         }
     }
     pub fn moves(&self) -> Vec<Move> {

@@ -1,4 +1,5 @@
 mod board;
+mod fen;
 mod move_gen;
 
 use board::{Board, Piece, Sides};
