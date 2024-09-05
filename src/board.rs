@@ -13,9 +13,11 @@ impl Board {
         let state = [
             [
                 BitBoard::from(vec![A2, B2, C2, D2, E2, F2, G2, H2]),
-                BitBoard::from(vec![A1, H1]),
+                // BitBoard::from(vec![A1, H1]),
+                BitBoard::from(vec![A1, H1, C4]),
                 BitBoard::from(vec![B1, G1]),
-                BitBoard::from(vec![C1, F1]),
+                // BitBoard::from(vec![C1, F1]),
+                BitBoard::from(vec![C1, F1, F4]),
                 // BitBoard::from(vec![D1]),
                 BitBoard::from(vec![D1, E4]),
                 BitBoard::from(vec![E1]),
@@ -183,6 +185,7 @@ generate_squares! {
 
 // TODO: Fix everything about this
 #[rustfmt::skip]
+#[derive(Clone, Copy, Debug)]
 pub enum Direction { N, E, S, W, NE, SE, NW, SW }
 
 pub fn step(sq: u8, dir: Direction) -> Option<u8> {

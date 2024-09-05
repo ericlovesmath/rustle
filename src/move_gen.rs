@@ -46,31 +46,56 @@ impl Board {
         board.0 ^= 1u64 << mov.from;
         board.0 ^= 1u64 << mov.to;
 
+        if mov.capture {
+            for piece in PIECES {
+                let opp = &mut state[self.turn as usize ^ 1][piece as usize];
+                if opp.flag(mov.to) {
+                    opp.0 ^= 1u64 << mov.to;
+                }
+            }
+        }
+
         Self {
             state,
             turn: self.turn.switch(),
         }
     }
     pub fn moves(&self) -> Vec<Move> {
-        // self.pseudo_moves(piece)
+        self.pseudo_moves()
+    }
+
+    pub fn pseudo_moves(&self) -> Vec<Move> {
         let mut our_board = 0u64;
         for piece in PIECES {
             our_board |= self.state[self.turn as usize][piece as usize].0
         }
-        //
+
         let mut opp_board = 0u64;
         for piece in PIECES {
             opp_board |= self.state[self.turn as usize ^ 1][piece as usize].0
         }
+
+        // let opp_king_board = &self.state[self.turn as usize ^ 1][Piece::King as usize];
+        // let opp_king = *SQUARES.iter().find(|&&sq| opp_king_board.flag(sq)).unwrap();
+        // let dirs = [
+        //     Direction::N, Direction::S, Direction::E, Direction::W,
+        //     Direction::NE, Direction::SE, Direction::NW, Direction::SW,
+        // ];
+        // let mut king_board = 0u64;
+        // for dir in dirs {
+        //     if let Some(sq) = step(opp_king, dir) {
+        //         king_board |= 1 << sq
+        //     }
+        // }
+
         let masks = Masks {
             our_board: BitBoard(our_board),
             opp_board: BitBoard(opp_board),
             block_board: BitBoard(our_board | opp_board),
         };
 
-        // TODO: Yield from generator
         let mut moves = vec![];
-        for piece in [Piece::Pawn] {
+        for piece in PIECES {
             for square in SQUARES {
                 if self.state[self.turn as usize][piece as usize].flag(square) {
                     let next = self.pseudo_moves_from(piece, square, &masks);
@@ -82,17 +107,29 @@ impl Board {
     }
 
     fn pseudo_moves_from(&self, piece: Piece, square: u8, masks: &Masks) -> Vec<Move> {
-        match piece {
+        // TODO: Yield from generator
+        // TODO: Add more rules like castling and enpassant and promotion
+        // TODO: Pre-generate masks for each piece per square
+        let moves = match piece {
             Piece::Pawn => self.pseudo_moves_pawn(square, masks),
-            Piece::Rook => todo!(),
-            Piece::Knight => todo!(),
-            Piece::Bishop => todo!(),
-            Piece::Queen => todo!(),
-            Piece::King => todo!(),
-        }
+            Piece::Rook => self.pseudo_moves_rook(square, masks),
+            Piece::Knight => self.pseudo_moves_knight(square, masks),
+            Piece::Bishop => self.pseudo_moves_bishop(square, masks),
+            Piece::Queen => self.pseudo_moves_queen(square, masks),
+            Piece::King => self.pseudo_moves_king(square, masks),
+        };
+        moves
+            .into_iter()
+            .map(|(square_to, capture)| Move {
+                piece,
+                from: square,
+                to: square_to,
+                capture,
+            })
+            .collect()
     }
 
-    fn pseudo_moves_pawn(&self, square: u8, masks: &Masks) -> Vec<Move> {
+    fn pseudo_moves_pawn(&self, square: u8, masks: &Masks) -> Vec<(u8, bool)> {
         let mut moves = vec![];
         if self.turn == Sides::White {
             if let Some(s) = step(square, Direction::N) {
@@ -107,14 +144,11 @@ impl Board {
                     }
                 }
             }
-            if let Some(s) = step(square, Direction::NW) {
-                if masks.opp_board.flag(s) {
-                    moves.push((s, true));
-                }
-            }
-            if let Some(s) = step(square, Direction::NE) {
-                if masks.opp_board.flag(s) {
-                    moves.push((s, true));
+            for dir in [Direction::NW, Direction::NE] {
+                if let Some(s) = step(square, dir) {
+                    if masks.opp_board.flag(s) {
+                        moves.push((s, true));
+                    }
                 }
             }
         } else {
@@ -130,25 +164,96 @@ impl Board {
                     }
                 }
             }
-            if let Some(s) = step(square, Direction::SW) {
-                if masks.opp_board.flag(s) {
-                    moves.push((s, true));
-                }
-            }
-            if let Some(s) = step(square, Direction::SE) {
-                if masks.opp_board.flag(s) {
-                    moves.push((s, true));
+            for dir in [Direction::SW, Direction::SE] {
+                if let Some(s) = step(square, dir) {
+                    if masks.opp_board.flag(s) {
+                        moves.push((s, true));
+                    }
                 }
             }
         }
         moves
-            .into_iter()
-            .map(|(sq, capture)| Move {
-                piece: Piece::Pawn,
-                from: square,
-                to: sq,
-                capture,
-            })
-            .collect()
+    }
+
+    fn pseudo_moves_rook(&self, square: u8, masks: &Masks) -> Vec<(u8, bool)> {
+        let dirs = [Direction::N, Direction::S, Direction::E, Direction::W];
+        self.pseudo_moves_dirs(square, &dirs, masks)
+    }
+
+    fn pseudo_moves_bishop(&self, square: u8, masks: &Masks) -> Vec<(u8, bool)> {
+        let dirs = [Direction::NE, Direction::SE, Direction::NW, Direction::SW];
+        self.pseudo_moves_dirs(square, &dirs, masks)
+    }
+
+    #[rustfmt::skip]
+    fn pseudo_moves_queen(&self, square: u8, masks: &Masks) -> Vec<(u8, bool)> {
+        let dirs = [
+            Direction::N, Direction::S, Direction::E, Direction::W,
+            Direction::NE, Direction::SE, Direction::NW, Direction::SW,
+        ];
+        self.pseudo_moves_dirs(square, &dirs, masks)
+    }
+
+    #[rustfmt::skip]
+    fn pseudo_moves_king(&self, square: u8, masks: &Masks) -> Vec<(u8, bool)> {
+        let dirs = [
+            Direction::N, Direction::S, Direction::E, Direction::W,
+            Direction::NE, Direction::SE, Direction::NW, Direction::SW,
+        ];
+        let mut moves = vec![];
+        for dir in dirs {
+            if let Some(sq) = step(square, dir) {
+                if masks.opp_board.flag(sq) {
+                    moves.push((sq, true));
+                } else if !masks.our_board.flag(sq) {
+                    moves.push((sq, false));
+                }
+            }
+        }
+        moves
+    }
+
+    fn pseudo_moves_knight(&self, square: u8, masks: &Masks) -> Vec<(u8, bool)> {
+        let dirs = [
+            (Direction::NE, [Direction::N, Direction::E]),
+            (Direction::NW, [Direction::N, Direction::W]),
+            (Direction::SE, [Direction::S, Direction::E]),
+            (Direction::SW, [Direction::S, Direction::W]),
+        ];
+        let mut moves = vec![];
+        for (base, next) in dirs {
+            if let Some(sq) = step(square, base) {
+                for dir in next {
+                    if let Some(sq) = step(sq, dir) {
+                        if masks.opp_board.flag(sq) {
+                            moves.push((sq, true));
+                        } else if !masks.our_board.flag(sq) {
+                            moves.push((sq, false));
+                        }
+                    }
+                }
+            }
+        }
+        moves
+    }
+
+
+    fn pseudo_moves_dirs(&self, square: u8, dirs: &[Direction], masks: &Masks) -> Vec<(u8, bool)> {
+        let mut moves = vec![];
+        for dir in dirs {
+            let mut curr = square;
+            while let Some(next) = step(curr, *dir) {
+                curr = next;
+                if masks.opp_board.flag(curr) {
+                    moves.push((curr, true));
+                    break;
+                }
+                if masks.our_board.flag(curr) {
+                    break;
+                }
+                moves.push((curr, false));
+            }
+        }
+        moves
     }
 }
