@@ -1,5 +1,6 @@
 use std::fmt;
 
+#[derive(Clone)]
 pub struct Board {
     pub state: [[BitBoard; 6]; 2],
     pub turn: Sides, // TODO: turn to 1 bit bool?
