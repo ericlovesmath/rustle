@@ -6,10 +6,24 @@ pub struct Move {
     pub from: u8,
     pub to: u8,
     pub capture: bool,
+    pub castle: Option<CastleRights>,
 }
 
 impl std::fmt::Display for Move {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        if let Some(castle) = self.castle {
+            return write!(
+                f,
+                "{}",
+                match castle {
+                    CastleRights::WhiteQueen => "White Queenside Castle",
+                    CastleRights::WhiteKing => "White Kingside Castle",
+                    CastleRights::BlackQueen => "Black Queenside Castle",
+                    CastleRights::BlackKing => "Black Kingside Castle",
+                }
+            );
+        }
+
         let piece = match self.piece {
             Piece::Pawn => "Pawn",
             Piece::Rook => "Rook",
@@ -54,6 +68,27 @@ impl Board {
             }
         }
 
+        if let Some(castle) = mov.castle {
+            match castle {
+                CastleRights::WhiteQueen => {
+                    board.switch(self.turn, Piece::Rook, A1);
+                    board.switch(self.turn, Piece::Rook, D1);
+                }
+                CastleRights::WhiteKing => {
+                    board.switch(self.turn, Piece::Rook, H1);
+                    board.switch(self.turn, Piece::Rook, F1);
+                }
+                CastleRights::BlackQueen => {
+                    board.switch(self.turn, Piece::Rook, A8);
+                    board.switch(self.turn, Piece::Rook, D8);
+                }
+                CastleRights::BlackKing => {
+                    board.switch(self.turn, Piece::Rook, H8);
+                    board.switch(self.turn, Piece::Rook, F8);
+                }
+            }
+        }
+
         board.turn = board.turn.switch();
         board
     }
@@ -88,12 +123,75 @@ impl Board {
                 }
             }
         }
+
+        // TODO: Castling
+
+        match self.turn {
+            Sides::White => {
+                if self.castle_rights & CastleRights::WhiteQueen as u8 != 0
+                    && !masks.block_board.get(B1)
+                    && !masks.block_board.get(C1)
+                    && !masks.block_board.get(D1)
+                {
+                    moves.push(Move {
+                        piece: Piece::King,
+                        from: E1,
+                        to: C1,
+                        capture: false,
+                        castle: Some(CastleRights::WhiteQueen),
+                    });
+                }
+
+                if self.castle_rights & CastleRights::WhiteKing as u8 != 0
+                    && !masks.block_board.get(F1)
+                    && !masks.block_board.get(G1)
+                {
+                    moves.push(Move {
+                        piece: Piece::King,
+                        from: E1,
+                        to: G1,
+                        capture: false,
+                        castle: Some(CastleRights::WhiteKing),
+                    });
+                }
+            },
+            Sides::Black => {
+                if self.castle_rights & CastleRights::BlackQueen as u8 != 0
+                    && !masks.block_board.get(B8)
+                    && !masks.block_board.get(C8)
+                    && !masks.block_board.get(D8)
+                {
+                    moves.push(Move {
+                        piece: Piece::King,
+                        from: E8,
+                        to: C8,
+                        capture: false,
+                        castle: Some(CastleRights::BlackQueen),
+                    });
+                }
+
+                if self.castle_rights & CastleRights::BlackKing as u8 != 0
+                    && !masks.block_board.get(F8)
+                    && !masks.block_board.get(G8)
+                {
+                    moves.push(Move {
+                        piece: Piece::King,
+                        from: E8,
+                        to: G8,
+                        capture: false,
+                        castle: Some(CastleRights::BlackKing),
+                    });
+                }
+            },
+        }
+
+        // TODO: EnPassant
+        // TODO: Pawn Promotion
         moves
     }
 
     fn pseudo_moves_from(&self, piece: Piece, square: u8, masks: &Masks) -> Vec<Move> {
         // TODO: Yield from generator
-        // TODO: Add more rules like castling and enpassant and promotion
         // TODO: Pre-generate masks for each piece per square
         let moves = match piece {
             Piece::Pawn => self.pseudo_moves_pawn(square, masks),
@@ -110,6 +208,7 @@ impl Board {
                 from: square,
                 to: square_to,
                 capture,
+                castle: None,
             })
             .collect()
     }

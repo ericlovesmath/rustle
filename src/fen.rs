@@ -54,16 +54,18 @@ impl From<String> for Board {
             _ => panic!("Invalid FEN Side"),
         };
 
-        for c in fen[2].to_string().chars() {
-            let right = match c {
-                'K' => CastleRights::WhiteKing,
-                'Q' => CastleRights::WhiteQueen,
-                'k' => CastleRights::BlackKing,
-                'q' => CastleRights::BlackQueen,
-                _ => panic!("Invalid FEN Castle Rights"),
+        if fen[2] != "-" {
+            for c in fen[2].to_string().chars() {
+                let right = match c {
+                    'K' => CastleRights::WhiteKing,
+                    'Q' => CastleRights::WhiteQueen,
+                    'k' => CastleRights::BlackKing,
+                    'q' => CastleRights::BlackQueen,
+                    _ => panic!("Invalid FEN Castle Rights"),
+                };
+                board.castle_rights |= right as u8;
             };
-            board.castle_rights |= right as u8;
-        };
+        }
 
         board
     }
