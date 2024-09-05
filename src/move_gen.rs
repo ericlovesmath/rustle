@@ -41,26 +41,23 @@ struct Masks {
 
 impl Board {
     pub fn apply(&self, mov: Move) -> Self {
-        let mut state = self.state;
-        let board = &mut state[self.turn as usize][mov.piece as usize];
-        board.0 ^= 1u64 << mov.from;
-        board.0 ^= 1u64 << mov.to;
+        let mut board = self.clone();
+
+        board.switch(self.turn, mov.piece, mov.from);
+        board.switch(self.turn, mov.piece, mov.to);
 
         if mov.capture {
             for piece in PIECES {
-                let opp = &mut state[self.turn as usize ^ 1][piece as usize];
-                if opp.flag(mov.to) {
-                    opp.0 ^= 1u64 << mov.to;
+                if board.get(self.turn.switch(), piece, mov.to) {
+                    board.switch(self.turn.switch(), piece, mov.to);
                 }
             }
         }
 
-        Self {
-            state,
-            turn: self.turn.switch(),
-            castle_rights: self.castle_rights,
-        }
+        board.turn = board.turn.switch();
+        board
     }
+
     pub fn moves(&self) -> Vec<Move> {
         self.pseudo_moves()
     }
@@ -76,19 +73,6 @@ impl Board {
             opp_board |= self.state[self.turn as usize ^ 1][piece as usize].0
         }
 
-        // let opp_king_board = &self.state[self.turn as usize ^ 1][Piece::King as usize];
-        // let opp_king = *SQUARES.iter().find(|&&sq| opp_king_board.flag(sq)).unwrap();
-        // let dirs = [
-        //     Direction::N, Direction::S, Direction::E, Direction::W,
-        //     Direction::NE, Direction::SE, Direction::NW, Direction::SW,
-        // ];
-        // let mut king_board = 0u64;
-        // for dir in dirs {
-        //     if let Some(sq) = step(opp_king, dir) {
-        //         king_board |= 1 << sq
-        //     }
-        // }
-
         let masks = Masks {
             our_board: BitBoard(our_board),
             opp_board: BitBoard(opp_board),
@@ -98,7 +82,7 @@ impl Board {
         let mut moves = vec![];
         for piece in PIECES {
             for square in SQUARES {
-                if self.state[self.turn as usize][piece as usize].flag(square) {
+                if self.get(self.turn, piece, square) {
                     let next = self.pseudo_moves_from(piece, square, &masks);
                     moves.extend_from_slice(next.as_slice());
                 }
@@ -134,11 +118,11 @@ impl Board {
         let mut moves = vec![];
         if self.turn == Sides::White {
             if let Some(s) = step(square, Direction::N) {
-                if !masks.block_board.flag(s) {
+                if !masks.block_board.get(s) {
                     moves.push((s, false));
                     if (A2..=H2).contains(&square) {
                         if let Some(s) = step(s, Direction::N) {
-                            if !masks.block_board.flag(s) {
+                            if !masks.block_board.get(s) {
                                 moves.push((s, false));
                             }
                         }
@@ -147,18 +131,18 @@ impl Board {
             }
             for dir in [Direction::NW, Direction::NE] {
                 if let Some(s) = step(square, dir) {
-                    if masks.opp_board.flag(s) {
+                    if masks.opp_board.get(s) {
                         moves.push((s, true));
                     }
                 }
             }
         } else {
             if let Some(s) = step(square, Direction::S) {
-                if !masks.block_board.flag(s) {
+                if !masks.block_board.get(s) {
                     moves.push((s, false));
                     if (A7..=H7).contains(&square) {
                         if let Some(s) = step(s, Direction::S) {
-                            if !masks.block_board.flag(s) {
+                            if !masks.block_board.get(s) {
                                 moves.push((s, false));
                             }
                         }
@@ -167,7 +151,7 @@ impl Board {
             }
             for dir in [Direction::SW, Direction::SE] {
                 if let Some(s) = step(square, dir) {
-                    if masks.opp_board.flag(s) {
+                    if masks.opp_board.get(s) {
                         moves.push((s, true));
                     }
                 }
@@ -204,9 +188,9 @@ impl Board {
         let mut moves = vec![];
         for dir in dirs {
             if let Some(sq) = step(square, dir) {
-                if masks.opp_board.flag(sq) {
+                if masks.opp_board.get(sq) {
                     moves.push((sq, true));
-                } else if !masks.our_board.flag(sq) {
+                } else if !masks.our_board.get(sq) {
                     moves.push((sq, false));
                 }
             }
@@ -226,9 +210,9 @@ impl Board {
             if let Some(sq) = step(square, base) {
                 for dir in next {
                     if let Some(sq) = step(sq, dir) {
-                        if masks.opp_board.flag(sq) {
+                        if masks.opp_board.get(sq) {
                             moves.push((sq, true));
-                        } else if !masks.our_board.flag(sq) {
+                        } else if !masks.our_board.get(sq) {
                             moves.push((sq, false));
                         }
                     }
@@ -238,18 +222,17 @@ impl Board {
         moves
     }
 
-
     fn pseudo_moves_dirs(&self, square: u8, dirs: &[Direction], masks: &Masks) -> Vec<(u8, bool)> {
         let mut moves = vec![];
         for dir in dirs {
             let mut curr = square;
             while let Some(next) = step(curr, *dir) {
                 curr = next;
-                if masks.opp_board.flag(curr) {
+                if masks.opp_board.get(curr) {
                     moves.push((curr, true));
                     break;
                 }
-                if masks.our_board.flag(curr) {
+                if masks.our_board.get(curr) {
                     break;
                 }
                 moves.push((curr, false));

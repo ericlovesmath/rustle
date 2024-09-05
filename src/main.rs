@@ -42,7 +42,7 @@ async fn main() {
 
                 for (side, color) in [(Sides::White, WHITE), (Sides::Black, BLACK)] {
                     for (piece, text) in checks {
-                        if curr.state[side as usize][piece as usize].flag(x + y * 8) {
+                        if curr.get(side, piece, x + y * 8) {
                             let text_params = TextParams {
                                 font_size: (size * 0.80) as u16,
                                 font: chess_font.as_ref(),

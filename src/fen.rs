@@ -24,18 +24,18 @@ impl From<String> for Board {
         for c in fen[0].to_string().chars() {
             let sq = x as u8 + y * 8;
             match c {
-                'P' => board.set(Sides::White, Piece::Pawn, sq),
-                'R' => board.set(Sides::White, Piece::Rook, sq),
-                'N' => board.set(Sides::White, Piece::Knight, sq),
-                'B' => board.set(Sides::White, Piece::Bishop, sq),
-                'Q' => board.set(Sides::White, Piece::Queen, sq),
-                'K' => board.set(Sides::White, Piece::King, sq),
-                'p' => board.set(Sides::Black, Piece::Pawn, sq),
-                'r' => board.set(Sides::Black, Piece::Rook, sq),
-                'n' => board.set(Sides::Black, Piece::Knight, sq),
-                'b' => board.set(Sides::Black, Piece::Bishop, sq),
-                'q' => board.set(Sides::Black, Piece::Queen, sq),
-                'k' => board.set(Sides::Black, Piece::King, sq),
+                'P' => board.switch(Sides::White, Piece::Pawn, sq),
+                'R' => board.switch(Sides::White, Piece::Rook, sq),
+                'N' => board.switch(Sides::White, Piece::Knight, sq),
+                'B' => board.switch(Sides::White, Piece::Bishop, sq),
+                'Q' => board.switch(Sides::White, Piece::Queen, sq),
+                'K' => board.switch(Sides::White, Piece::King, sq),
+                'p' => board.switch(Sides::Black, Piece::Pawn, sq),
+                'r' => board.switch(Sides::Black, Piece::Rook, sq),
+                'n' => board.switch(Sides::Black, Piece::Knight, sq),
+                'b' => board.switch(Sides::Black, Piece::Bishop, sq),
+                'q' => board.switch(Sides::Black, Piece::Queen, sq),
+                'k' => board.switch(Sides::Black, Piece::King, sq),
                 '1'..='9' => x += c as i8 - '1' as i8,
                 '/' => {
                     assert!(x == 8);

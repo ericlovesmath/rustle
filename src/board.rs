@@ -5,8 +5,9 @@ pub struct Board {
     pub state: [[BitBoard; 6]; 2],
     pub turn: Sides, // TODO: turn to 1 bit bool?
     pub castle_rights: u8,
-                     // en_passant: Option<u8>,
-                     // halfmoves: usize,
+    // en_passant: Option<u8>,
+    // halfmoves: usize,
+    // fullmoves: usize,
 }
 
 impl Board {
@@ -14,9 +15,13 @@ impl Board {
         Self::from("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1".to_string())
     }
 
-    pub fn set(&mut self, side: Sides, piece: Piece, square: u8) {
+    pub fn get(&self, side: Sides, piece: Piece, square: u8) -> bool {
+        self.state[side as usize][piece as usize].get(square)
+    }
+
+    pub fn switch(&mut self, side: Sides, piece: Piece, square: u8) {
         let mask = 1u64 << square as u64;
-        self.state[side as usize][piece as usize].0 |= mask;
+        self.state[side as usize][piece as usize].0 ^= mask;
     }
 }
 
@@ -61,7 +66,7 @@ impl fmt::Display for Board {
 pub struct BitBoard(pub u64);
 
 impl BitBoard {
-    pub fn flag(&self, square: u8) -> bool {
+    pub fn get(&self, square: u8) -> bool {
         let mask = 1u64 << square as u64;
         self.0 & mask == mask
     }
