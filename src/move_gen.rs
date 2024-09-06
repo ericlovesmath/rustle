@@ -11,6 +11,7 @@ pub struct Move {
     // Store in Masks a mapping from square to piece?
     pub capture: Option<u8>,
     pub castle: Option<Castle>,
+    pub promotion: Option<Piece>,
 }
 
 impl std::fmt::Display for Move {
@@ -46,6 +47,9 @@ impl std::fmt::Display for Move {
         );
         if self.capture.is_some() {
             msg.push_str(" with capture");
+        }
+        if self.promotion.is_some() {
+            msg.push_str(" with promotion");
         }
         write!(f, "{msg}")
     }
@@ -91,6 +95,11 @@ impl Board {
                     board.switch(self.turn, Piece::Rook, F8);
                 }
             }
+        }
+
+        if let Some(piece) = mov.promotion {
+            board.switch(self.turn, Piece::Pawn, mov.to);
+            board.switch(self.turn, piece, mov.to);
         }
 
         // Update Castling Rights
@@ -169,6 +178,7 @@ impl Board {
                         to: C1,
                         capture: None,
                         castle: Some(Castle::WhiteQueen),
+                        promotion: None,
                     });
                 }
 
@@ -181,6 +191,7 @@ impl Board {
                         to: G1,
                         capture: None,
                         castle: Some(Castle::WhiteKing),
+                        promotion: None,
                     });
                 }
             }
@@ -194,6 +205,7 @@ impl Board {
                         to: C8,
                         capture: None,
                         castle: Some(Castle::BlackQueen),
+                        promotion: None,
                     });
                 }
 
@@ -206,6 +218,7 @@ impl Board {
                         to: G8,
                         capture: None,
                         castle: Some(Castle::BlackKing),
+                        promotion: None,
                     });
                 }
             }
@@ -276,16 +289,34 @@ impl Board {
                 }
             }
         }
-        moves
-            .into_iter()
-            .map(|(square_to, capture)| Move {
-                piece: Piece::Pawn,
-                from: square,
-                to: square_to,
-                capture,
-                castle: None,
-            })
-            .collect()
+
+        let mut final_moves = vec![];
+
+        for (to, capture) in moves.into_iter() {
+            if (self.turn == Sides::White && to <= H8) || (self.turn == Sides::Black && to >= A1) {
+                for piece in [Piece::Bishop, Piece::Knight, Piece::Rook, Piece::Queen] {
+                    final_moves.push(Move {
+                        piece: Piece::Pawn,
+                        from: square,
+                        to,
+                        capture,
+                        castle: None,
+                        promotion: Some(piece),
+                    });
+                }
+            } else {
+                final_moves.push(Move {
+                    piece: Piece::Pawn,
+                    from: square,
+                    to,
+                    capture,
+                    castle: None,
+                    promotion: None,
+                });
+            }
+        }
+
+        final_moves
     }
 
     fn pseudo_moves_rook(&self, square: u8, masks: &Masks) -> Vec<Move> {
@@ -331,6 +362,7 @@ impl Board {
                 to: square_to,
                 capture,
                 castle: None,
+                promotion: None,
             })
             .collect()
     }
@@ -364,6 +396,7 @@ impl Board {
                 to: square_to,
                 capture,
                 castle: None,
+                promotion: None,
             })
             .collect()
     }
@@ -398,6 +431,7 @@ impl Board {
                 to: square_to,
                 capture,
                 castle: None,
+                promotion: None,
             })
             .collect()
     }
