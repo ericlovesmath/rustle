@@ -12,7 +12,8 @@ async fn main() {
         .ok();
 
     // let board = Board::from("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1".to_string());
-    let board = Board::from("r3k2r/pppppppp/8/8/8/8/PPPPPPPP/R3K2R b KQkq - 0 1".to_string());
+    // let board = Board::from("r3k2r/pppppppp/8/8/8/8/PPPPPPPP/R3K2R b KQkq - 0 1".to_string());
+    let board = Board::from("r3k2r/ppp1pppp/8/2PpP3/4PP2/8/PPPPPPPP/R3K2R w KQkq d6 0 1".to_string());
 
     let mut curr = board.clone();
     let moves = board.moves();

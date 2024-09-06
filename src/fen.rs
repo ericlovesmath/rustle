@@ -6,16 +6,8 @@ impl From<String> for Board {
             state: [[BitBoard(0); 6]; 2],
             turn: Sides::White,
             castle_rights: 0,
+            en_passant: None,
         };
-
-        // // use CastleRights::*;
-        // // let castle_rights = WhiteQueen as u8 | WhiteKing as u8 | BlackQueen as u8 | BlackKing as u8;
-        //
-        // Board {
-        //     state,
-        //     turn: Sides::White,
-        //     // castle_rights,
-        // }
 
         let fen: Vec<&str> = fen.split_whitespace().collect();
 
@@ -64,8 +56,20 @@ impl From<String> for Board {
                     _ => panic!("Invalid FEN Castle Rights"),
                 };
                 board.castle_rights |= right as u8;
-            };
+            }
         }
+
+        if fen[3] != "-" {
+            let mut chars = fen[3].chars();
+            let file = chars.next().unwrap() as u8 - b'a';
+            let row = b'8' - chars.next().unwrap() as u8;
+            let square = row * 8 + file;
+
+            assert!(square <= H1, "Invalid FEN En Passant Square");
+            board.en_passant = Some(square);
+        }
+
+        // TODO: Halfmove and Fullmove
 
         board
     }

@@ -5,16 +5,12 @@ pub struct Board {
     pub state: [[BitBoard; 6]; 2],
     pub turn: Sides, // TODO: turn to 1 bit bool?
     pub castle_rights: u8,
-    // en_passant: Option<u8>,
+    pub en_passant: Option<u8>,
     // halfmoves: usize,
     // fullmoves: usize,
 }
 
 impl Board {
-    pub fn new() -> Self {
-        Self::from("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1".to_string())
-    }
-
     pub fn get(&self, side: Sides, piece: Piece, square: u8) -> bool {
         self.state[side as usize][piece as usize].get(square)
     }
@@ -134,7 +130,7 @@ pub const PIECES: [Piece; 6] = [
 ];
 
 #[repr(u8)]
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Piece {
     Pawn,
     Rook,
