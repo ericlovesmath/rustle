@@ -97,7 +97,7 @@ impl fmt::Display for BitBoard {
 
 #[repr(u8)]
 #[derive(Clone, Copy)]
-pub enum CastleRights {
+pub enum Castle {
     WhiteQueen = 1u8 << 0,
     WhiteKing = 1u8 << 1,
     BlackQueen = 1u8 << 2,

@@ -49,10 +49,10 @@ impl From<String> for Board {
         if fen[2] != "-" {
             for c in fen[2].to_string().chars() {
                 let right = match c {
-                    'K' => CastleRights::WhiteKing,
-                    'Q' => CastleRights::WhiteQueen,
-                    'k' => CastleRights::BlackKing,
-                    'q' => CastleRights::BlackQueen,
+                    'K' => Castle::WhiteKing,
+                    'Q' => Castle::WhiteQueen,
+                    'k' => Castle::BlackKing,
+                    'q' => Castle::BlackQueen,
                     _ => panic!("Invalid FEN Castle Rights"),
                 };
                 board.castle_rights |= right as u8;

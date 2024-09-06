@@ -11,12 +11,12 @@ async fn main() {
         .await
         .ok();
 
-    // let board = Board::from("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1".to_string());
-    // let board = Board::from("r3k2r/pppppppp/8/8/8/8/PPPPPPPP/R3K2R b KQkq - 0 1".to_string());
-    let board = Board::from("r3k2r/ppp1pppp/8/2PpP3/4PP2/8/PPPPPPPP/R3K2R w KQkq d6 0 1".to_string());
+    let mut board = Board::from("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1".to_string());
+    // let mut board = Board::from("r3k2r/pppppppp/8/8/8/8/PPPPPPPP/R3K2R w KQkq - 0 1".to_string());
+    // let board = Board::from("r3k2r/ppp1pppp/8/2PpP3/4PP2/8/PPPPPPPP/R3K2R w KQkq d6 0 1".to_string());
 
     let mut curr = board.clone();
-    let moves = board.moves();
+    let mut moves = board.moves();
     let mut index = 0;
 
     loop {
@@ -80,6 +80,12 @@ async fn main() {
             index = (index + 1) % moves.len();
             println!("{}", moves[index]);
             curr = board.apply(moves[index].clone());
+        }
+        if is_key_pressed(KeyCode::Space) {
+            board = board.apply(moves[rand::gen_range(0, moves.len())].clone());
+            curr = board.clone();
+            moves = board.moves();
+            index = 0;
         }
         next_frame().await;
     }

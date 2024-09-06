@@ -10,7 +10,7 @@ pub struct Move {
     // TODO: Detect what piece is being captured
     // Store in Masks a mapping from square to piece?
     pub capture: Option<u8>,
-    pub castle: Option<CastleRights>,
+    pub castle: Option<Castle>,
 }
 
 impl std::fmt::Display for Move {
@@ -20,10 +20,10 @@ impl std::fmt::Display for Move {
                 f,
                 "{}",
                 match castle {
-                    CastleRights::WhiteQueen => "White Queenside Castle",
-                    CastleRights::WhiteKing => "White Kingside Castle",
-                    CastleRights::BlackQueen => "Black Queenside Castle",
-                    CastleRights::BlackKing => "Black Kingside Castle",
+                    Castle::WhiteQueen => "White Queenside Castle",
+                    Castle::WhiteKing => "White Kingside Castle",
+                    Castle::BlackQueen => "Black Queenside Castle",
+                    Castle::BlackKing => "Black Kingside Castle",
                 }
             );
         }
@@ -74,25 +74,44 @@ impl Board {
 
         if let Some(castle) = mov.castle {
             match castle {
-                CastleRights::WhiteQueen => {
+                Castle::WhiteQueen => {
                     board.switch(self.turn, Piece::Rook, A1);
                     board.switch(self.turn, Piece::Rook, D1);
                 }
-                CastleRights::WhiteKing => {
+                Castle::WhiteKing => {
                     board.switch(self.turn, Piece::Rook, H1);
                     board.switch(self.turn, Piece::Rook, F1);
                 }
-                CastleRights::BlackQueen => {
+                Castle::BlackQueen => {
                     board.switch(self.turn, Piece::Rook, A8);
                     board.switch(self.turn, Piece::Rook, D8);
                 }
-                CastleRights::BlackKing => {
+                Castle::BlackKing => {
                     board.switch(self.turn, Piece::Rook, H8);
                     board.switch(self.turn, Piece::Rook, F8);
                 }
             }
         }
 
+        // Update Castling Rights
+        if mov.piece == Piece::King {
+            board.castle_rights &= match self.turn {
+                Sides::White => Castle::BlackKing as u8 | Castle::BlackQueen as u8,
+                Sides::Black => Castle::WhiteKing as u8 | Castle::WhiteQueen as u8,
+            }
+        }
+        if mov.piece == Piece::Rook {
+            let disable = match (self.turn, mov.from) {
+                (Sides::White, A1) => Castle::WhiteQueen as u8,
+                (Sides::White, H1) => Castle::WhiteKing as u8,
+                (Sides::Black, A8) => Castle::BlackQueen as u8,
+                (Sides::Black, H8) => Castle::BlackKing as u8,
+                _ => 0,
+            };
+            board.castle_rights &= 0b1111 ^ disable;
+        }
+
+        // Update En Passant square
         board.en_passant = None;
         if mov.piece == Piece::Pawn {
             if self.turn == Sides::White && mov.from - mov.to == 16 {
@@ -101,7 +120,6 @@ impl Board {
                 board.en_passant = Some(mov.from + 8);
             }
         }
-        println!("{:?}", board.en_passant);
 
         board.turn = board.turn.switch();
         board
@@ -142,64 +160,57 @@ impl Board {
 
         match self.turn {
             Sides::White => {
-                if self.castle_rights & CastleRights::WhiteQueen as u8 != 0
-                    && !masks.block_board.get(B1)
-                    && !masks.block_board.get(C1)
-                    && !masks.block_board.get(D1)
+                if self.castle_rights & Castle::WhiteQueen as u8 != 0
+                    && masks.block_board.0 & (1u64 << B1 | 1u64 << C1 | 1u64 << D1) == 0
                 {
                     moves.push(Move {
                         piece: Piece::King,
                         from: E1,
                         to: C1,
                         capture: None,
-                        castle: Some(CastleRights::WhiteQueen),
+                        castle: Some(Castle::WhiteQueen),
                     });
                 }
 
-                if self.castle_rights & CastleRights::WhiteKing as u8 != 0
-                    && !masks.block_board.get(F1)
-                    && !masks.block_board.get(G1)
+                if self.castle_rights & Castle::WhiteKing as u8 != 0
+                    && masks.block_board.0 & (1u64 << F1 | 1u64 << G1) == 0
                 {
                     moves.push(Move {
                         piece: Piece::King,
                         from: E1,
                         to: G1,
                         capture: None,
-                        castle: Some(CastleRights::WhiteKing),
+                        castle: Some(Castle::WhiteKing),
                     });
                 }
             }
             Sides::Black => {
-                if self.castle_rights & CastleRights::BlackQueen as u8 != 0
-                    && !masks.block_board.get(B8)
-                    && !masks.block_board.get(C8)
-                    && !masks.block_board.get(D8)
+                if self.castle_rights & Castle::BlackQueen as u8 != 0
+                    && masks.block_board.0 & (1u64 << B8 | 1u64 << C8 | 1u64 << D8) == 0
                 {
                     moves.push(Move {
                         piece: Piece::King,
                         from: E8,
                         to: C8,
                         capture: None,
-                        castle: Some(CastleRights::BlackQueen),
+                        castle: Some(Castle::BlackQueen),
                     });
                 }
 
-                if self.castle_rights & CastleRights::BlackKing as u8 != 0
-                    && !masks.block_board.get(F8)
-                    && !masks.block_board.get(G8)
+                if self.castle_rights & Castle::BlackKing as u8 != 0
+                    && masks.block_board.0 & (1u64 << F8 | 1u64 << G8) == 0
                 {
                     moves.push(Move {
                         piece: Piece::King,
                         from: E8,
                         to: G8,
                         capture: None,
-                        castle: Some(CastleRights::BlackKing),
+                        castle: Some(Castle::BlackKing),
                     });
                 }
             }
         }
 
-        // TODO: EnPassant
         // TODO: Pawn Promotion
         moves
     }
