@@ -1,8 +1,8 @@
 mod board;
 mod fen;
-mod move_gen;
+mod moves;
 
-use board::{Board, Piece, Sides};
+use board::{GameState, Piece, Sides, Square};
 use macroquad::prelude::*;
 
 #[macroquad::main("rustle")]
@@ -11,12 +11,12 @@ async fn main() {
         .await
         .ok();
 
-    let mut board = Board::from("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1".to_string());
+    let mut game = GameState::from("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1".to_string());
     // let mut board = Board::from("r3k2r/pppppppp/8/8/8/8/PPPPPPPP/R3K2R w KQkq - 0 1".to_string());
     // let board = Board::from("r3k2r/ppp1pppp/8/2PpP3/4PP2/8/PPPPPPPP/R3K2R w KQkq d6 0 1".to_string());
 
-    let mut curr = board.clone();
-    let mut moves = board.moves();
+    let mut curr = game.clone();
+    let mut moves = game.moves();
     let mut index = 0;
 
     loop {
@@ -45,7 +45,7 @@ async fn main() {
 
                 for (side, color) in [(Sides::White, WHITE), (Sides::Black, BLACK)] {
                     for (piece, text) in checks {
-                        if curr.get(side, piece, x + y * 8) {
+                        if curr.board(side, piece).get(Square::from(x + y * 8)) {
                             let text_params = TextParams {
                                 font_size: (size * 0.80) as u16,
                                 font: chess_font.as_ref(),
@@ -74,17 +74,17 @@ async fn main() {
         if is_key_pressed(KeyCode::Left) {
             index = (index + moves.len() - 1) % moves.len();
             println!("{}", moves[index]);
-            curr = board.apply(moves[index].clone());
+            curr = game.apply(moves[index].clone());
         }
         if is_key_pressed(KeyCode::Right) {
             index = (index + 1) % moves.len();
             println!("{}", moves[index]);
-            curr = board.apply(moves[index].clone());
+            curr = game.apply(moves[index].clone());
         }
         if is_key_pressed(KeyCode::Space) {
-            board = board.apply(moves[rand::gen_range(0, moves.len())].clone());
-            curr = board.clone();
-            moves = board.moves();
+            game = game.apply(moves[rand::gen_range(0, moves.len())].clone());
+            curr = game.clone();
+            moves = game.moves();
             index = 0;
         }
         next_frame().await;
