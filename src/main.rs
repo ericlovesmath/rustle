@@ -11,7 +11,8 @@ async fn main() {
         .await
         .ok();
 
-    let mut game = GameState::from("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1".to_string());
+    // let mut game = GameState::from("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1".to_string());
+    let mut game = GameState::from("rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8".to_string());
     // let mut board = Board::from("r3k2r/pppppppp/8/8/8/8/PPPPPPPP/R3K2R w KQkq - 0 1".to_string());
     // let board = Board::from("r3k2r/ppp1pppp/8/2PpP3/4PP2/8/PPPPPPPP/R3K2R w KQkq d6 0 1".to_string());
 
@@ -80,6 +81,12 @@ async fn main() {
             index = (index + 1) % moves.len();
             println!("{}", moves[index]);
             curr = game.apply(moves[index].clone());
+        }
+        if is_key_pressed(KeyCode::Up) {
+            game = game.apply(moves[index].clone());
+            curr = game.clone();
+            moves = game.moves();
+            index = 0;
         }
         if is_key_pressed(KeyCode::Space) {
             game = game.apply(moves[rand::gen_range(0, moves.len())].clone());

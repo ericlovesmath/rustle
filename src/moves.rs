@@ -1,5 +1,5 @@
-use crate::board::*;
 use crate::board::Square::*;
+use crate::board::*;
 
 // TODO: Optimize on redundant storage of data, especially with
 // edge cases like Castling and Capturing
@@ -38,10 +38,7 @@ impl std::fmt::Display for Move {
             Piece::Queen => "Queen",
             Piece::King => "King",
         };
-        let mut msg = format!(
-            "{} {:?} to {:?}",
-            piece, self.from, self.to
-        );
+        let mut msg = format!("{} {:?} to {:?}", piece, self.from, self.to);
         if self.capture.is_some() {
             msg.push_str(" with capture");
         }
@@ -120,6 +117,21 @@ impl GameState {
             game.castle_rights &= 0b1111 ^ disable;
         }
 
+        if !game.board(Sides::White, Piece::Rook).get(A1) {
+            game.castle_rights &= 0b1111 ^ Castle::WhiteQueen as u8;
+        }
+        if !game.board(Sides::White, Piece::Rook).get(H1) {
+            game.castle_rights &= 0b1111 ^ Castle::WhiteKing as u8;
+        }
+        if !game.board(Sides::Black, Piece::Rook).get(A8) {
+            game.castle_rights &= 0b1111 ^ Castle::BlackQueen as u8;
+        }
+        if !game.board(Sides::Black, Piece::Rook).get(H8) {
+            game.castle_rights &= 0b1111 ^ Castle::BlackKing as u8;
+        }
+
+        // TODO: Check castling when in check, probably in legal move generation
+
         // Update En Passant square
         game.en_passant = None;
         if mov.piece == Piece::Pawn {
@@ -170,7 +182,9 @@ impl GameState {
         match self.turn {
             Sides::White => {
                 if self.castle_rights & Castle::WhiteQueen as u8 != 0
-                    && masks.block_board.0 & (1u64 << B1 as u8 | 1u64 << C1 as u8 | 1u64 << D1 as u8) == 0
+                    && masks.block_board.0
+                        & (1u64 << B1 as u8 | 1u64 << C1 as u8 | 1u64 << D1 as u8)
+                        == 0
                 {
                     moves.push(Move {
                         piece: Piece::King,
@@ -197,7 +211,9 @@ impl GameState {
             }
             Sides::Black => {
                 if self.castle_rights & Castle::BlackQueen as u8 != 0
-                    && masks.block_board.0 & (1u64 << B8 as u8 | 1u64 << C8 as u8 | 1u64 << D8 as u8) == 0
+                    && masks.block_board.0
+                        & (1u64 << B8 as u8 | 1u64 << C8 as u8 | 1u64 << D8 as u8)
+                        == 0
                 {
                     moves.push(Move {
                         piece: Piece::King,
@@ -434,4 +450,67 @@ impl GameState {
             })
             .collect()
     }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Generates legal moves by checking if following pseudo-legal move captures King
+    fn legal_from_pseudo(game: &GameState) -> Vec<Move> {
+        game.pseudo_moves()
+            .into_iter()
+            .filter(|m| {
+                let next = game.apply(m.clone());
+                next.pseudo_moves()
+                    .into_iter()
+                    .map(|m| next.apply(m))
+                    .all(|game| game.board(game.turn, Piece::King).0 > 0)
+            })
+            .collect()
+    }
+
+    /// This is strictly to test the Pseudo-legal Function
+    fn count_naive(game: GameState, depth: u8) -> usize {
+        let mut games = vec![game];
+        for _ in 0..depth {
+            games = games
+                .iter()
+                .flat_map(|game| legal_from_pseudo(game).into_iter().map(|m| game.apply(m)))
+                .collect();
+        }
+        games.len()
+    }
+
+    fn divide(fen: &str, depth: u8) -> usize {
+        let game = GameState::from(fen.to_string());
+        for m in legal_from_pseudo(&game) {
+            println!("{}: {}", m, count_naive(game.apply(m.clone()), depth - 1))
+        }
+        let count = count_naive(game, depth);
+        println!("\nTotal at depth {}: {}\n", depth, count);
+        count
+    }
+
+    #[test]
+    fn initial_state_pseudo() {
+        let fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+        assert_eq!(divide(fen, 1), 20);
+        assert_eq!(divide(fen, 2), 400);
+        assert_eq!(divide(fen, 3), 8902);
+        assert_eq!(divide(fen, 4), 197281);
+        // assert_eq!(divide(fen, 5), 4865609);
+    }
+
+    // #[test]
+    // https://www.chessprogramming.org/Perft_Results
+    // fn position_five_pseudo() {
+    //     let fen = "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8";
+    //     let fen = "rnNq1k1r/pp2bppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R b KQ - 1 9";
+    //     let fen = "rnNq1k1r/pp2bppp/2p5/8/2B5/8/PPP1N1PP/RNBQK2n w Q - 1 10";
+    //     assert_eq!(divide(fen, 2), 0);
+    //     assert_eq!(divide(fen, 1), 44);
+    //     assert_eq!(divide(fen, 2), 1486);
+    //     assert_eq!(divide(fen, 3), 62379);
+    // }
 }

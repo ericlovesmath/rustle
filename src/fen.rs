@@ -3,10 +3,7 @@ use crate::board::*;
 impl From<String> for GameState {
     fn from(fen: String) -> Self {
         let mut game = GameState {
-            state: [
-                 [BitBoard(0), BitBoard(0), BitBoard(0), BitBoard(0), BitBoard(0), BitBoard(0)],
-                 [BitBoard(0), BitBoard(0), BitBoard(0), BitBoard(0), BitBoard(0), BitBoard(0)],
-            ],
+            state: std::array::from_fn(|_| std::array::from_fn(|_| BitBoard(0))),
             turn: Sides::White,
             castle_rights: 0,
             en_passant: None,
